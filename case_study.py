@@ -59,24 +59,25 @@ import random
 # %% codecell
 # Now that the files are saved, we want to load them into Python using read_csv and pandas.
 path = 'data/'
+
 # Create a variable called google, and store in it the path of the csv file that contains your google dataset.
 # If your dataset is in the same folder as this notebook, the path will simply be the name of the file.
-_ _ _
+google = 'googleplaystore.csv'
 
 # Read the csv file into a data frame called Google using the read_csv() pandas method.
-_ _ _
+Google = pd.read_csv(path+google)
 
 # Using the head() pandas method, observe the first three entries.
-_ _ _
+Google.head(3)
 # %% codecell
 # Create a variable called apple, and store in it the path of the csv file that contains your apple dataset.
-_ _ _
+apple = 'AppleStore.csv'
 
 # Read the csv file into a pandas DataFrame object called Apple.
-_ _ _
+Apple = pd.read_csv(path+apple)
 
 # Observe the first three entries like you did with your other data.
-_ _ _
+Apple.head(3)
 # %% markdown
 # ### 1b. Pick the columns we'll work with
 #
@@ -98,16 +99,15 @@ _ _ _
 # Let's select only those columns that we want to work with from both datasets. We'll overwrite the subsets in the original variables.
 # %% codecell
 # Subset our DataFrame object Google by selecting just the variables ['Category', 'Rating', 'Reviews', 'Price']
-_ _ _
+Google = Google[['Category', 'Rating', 'Reviews', 'Price']]
 
 # Check the first three entries
-_ _ _
+Google.head(3)
 # %% codecell
 # Do the same with our Apple object, selecting just the variables ['prime_genre', 'user_rating', 'rating_count_tot', 'price']
-_ _ _
-
+Apple = Apple[['prime_genre', 'user_rating', 'rating_count_tot', 'price']]
 # Let's check the first three entries
-_ _ _
+Apple.head(3)
 # %% markdown
 # ## Stage 2 -  Cleaning, transforming and visualizing
 # %% markdown
@@ -117,17 +117,17 @@ _ _ _
 # %% codecell
 # Using the dtypes feature of pandas DataFrame objects, check out the data types within our Apple dataframe.
 # Are they what you expect?
-_ _ _
+Apple.dtypes
 # %% markdown
 # This is looking healthy. But what about our Google data frame?
 # %% codecell
 # Using the same dtypes feature, check out the data types of our Google dataframe.
-_ _ _
+Google.dtypes
 # %% markdown
 # Weird. The data type for the column 'Price' is 'object', not a numeric data type like a float or an integer. Let's investigate the unique values of this column.
 # %% codecell
 # Use the unique() pandas method on the Price column to check its unique values.
-_ _ _
+Google['Price'].unique()
 # %% markdown
 # Aha! Fascinating. There are actually two issues here.
 #
@@ -141,7 +141,7 @@ _ _ _
 
 # Subset the Google dataframe on the price column.
 # To be sure: you want to pick out just those rows whose value for the 'Price' column is just 'Everyone'.
-_ _ _
+Google[Google['Price'] == 'Everyone']
 # %% markdown
 # Thankfully, it's just one row. We've gotta get rid of it.
 # %% codecell
@@ -150,10 +150,10 @@ _ _ _
 # Subset our Google dataframe to pick out just those rows whose value for the 'Price' column is NOT 'Everyone'.
 # Reassign that subset to the Google variable.
 # You can do this in two lines or one. Your choice!
-_ _ _
+Google = Google[Google['Price'] != 'Everyone']
 
 # Check again the unique values of Google
-_ _ _
+Google['Price'].unique()
 # %% markdown
 # Our second problem remains: I'm seeing dollar symbols when I close my eyes! (And not in a good way).
 #
@@ -161,26 +161,27 @@ _ _ _
 # %% codecell
 # Let's create a variable called nosymb.
 # This variable will take the Price column of Google and apply the str.replace() method.
-_ _ _
+nosymb = ''
 
 # Now we need to do two things:
 # i. Make the values in the nosymb variable numeric using the to_numeric() pandas method.
 # ii. Assign this new set of numeric, dollar-sign-less values to Google['Price'].
 # You can do this in one line if you wish.
-_ _ _
+Google['Price'] = Google['Price'].str.replace('$', nosymb)
+Google['Price'] = pd.to_numeric(Google['Price'])
 # %% markdown
 # Now let's check the data types for our Google dataframe again, to verify that the 'Price' column really is numeric now.
 # %% codecell
 # Use the function dtypes.
-_ _ _
+Google.info()
 # %% markdown
 # Notice that the column `Reviews` is still an object column. We actually need this column to be a numeric column, too.
 # %% codecell
 # Convert the 'Reviews' column to a numeric data type.
-_ _ _
+Google['Reviews'] = pd.to_numeric(Google['Reviews'])
 # %% codecell
 # Let's check the data types of Google again
-_ _ _
+Google.info()
 # %% markdown
 # ### 2b. Add a `platform` column to both the `Apple` and the `Google` dataframes
 # Let's add a new column to both dataframe objects called `platform`: all of its values in the Google dataframe will be just 'google', and all of its values for the Apple dataframe will be just 'apple'.
@@ -189,7 +190,16 @@ _ _ _
 # %% codecell
 # Create a column called 'platform' in both the Apple and Google dataframes.
 # Add the value 'apple' and the value 'google' as appropriate.
-_ _ _
+google_platform = []
+for i in range(len(Google)):
+    google_platform.append('google')
+Google['platform'] = google_platform
+
+apple_platform = []
+for i in range(len(Apple)):
+    apple_platform.append('apple')
+Apple['platform'] = apple_platform
+
 # %% markdown
 # ### 2c. Changing the column names to prepare for our join of the two datasets
 # Since the easiest way to join two datasets is if they have both:
@@ -203,35 +213,40 @@ _ _ _
 # %% codecell
 # Create a variable called old_names where you'll store the column names of the Apple dataframe.
 # Use the feature .columns.
-_ _ _
-
+old_names = Apple.columns
+old_names = pd.Series(['prime_genre', 'user_rating', 'rating_count_tot', 'price', 'platform'])
 # Create a variable called new_names where you'll store the column names of the Google dataframe.
-_ _ _
-
+new_names = Google.columns
+new_names = pd.Series(['Category', 'Rating', 'Reviews', 'Price', 'platform'])
 # Use the rename() DataFrame method to change the columns names.
-_ _ _
+names = {}
+for old_name, new_name in zip(old_names, new_names):
+    names[old_name] = new_name
+
+Apple = Apple.rename(columns=names)
+Apple.columns
 # %% markdown
 # ### 2d. Join the two datasets
 # Let's combine the two datasets into a single data frame called `df`.
 # %% codecell
 # Let's use the append() method to append Apple to Google.
-_ _ _
+df = Google.append(Apple)
 
 # Using the sample() method with the number 12 passed to it, check 12 random points of your dataset.
-_ _ _
+df.sample(12)
 # %% markdown
 # ### 2e. Eliminate the NaN values
 #
 # As you can see there are some `NaN` values. We want to eliminate all these `NaN` values from the table.
 # %% codecell
 # Lets check first the dimesions of df before droping `NaN` values. Use the .shape feature.
-_ _ _
+df.shape
 
 # Use the dropna() method to eliminate all the NaN values, and overwrite the same dataframe with the result.
-_ _ _
+df = df.dropna()
 
 # Check the new dimesions of our dataframe.
-_ _ _
+df.shape
 # %% markdown
 # ### 2f. Filter the data so that we only see whose apps that have been reviewed at least once
 #
@@ -241,19 +256,20 @@ _ _ _
 # %% codecell
 # Subset your df to pick out just those rows whose value for 'Reviews' is equal to 0.
 # Do a count() on the result.
-_ _ _
+df[df['Reviews'] == 0].count()
 # %% markdown
 # 929 apps do not have reviews, we need to eliminate these points!
 # %% codecell
 # Eliminate the points that have 0 reviews.
-_ _ _
+df = df[df['Reviews'] != 0]
 # %% markdown
 # ### 2g. Summarize the data visually and analytically (by the column `platform`)
 # %% markdown
 # What we need to solve our brief is a summary of the `Rating` column, but separated by the different platforms.
 # %% codecell
 # To summarize analytically, let's use the groupby() method on our df.
-_ _ _
+df.groupby('platform').describe()
+
 # %% markdown
 # Interesting! Our means of 4.049697 and 4.191757 don't **seem** all that different! Perhaps we've solved our brief already: there's no significant difference between Google Play app reviews and Apple Store app reviews. We have an ***observed difference*** here: which is simply (4.191757 - 4.049697) = 0.14206. This is just the actual difference that we observed between the mean rating for apps from Google Play, and the mean rating for apps from the Apple Store. Let's look at how we're going to use this observed difference to solve our problem using a statistical test.
 #
@@ -285,7 +301,17 @@ _ _ _
 # A good tool to use here is the boxplot!
 # %% codecell
 # Call the boxplot() method on our df.
-_ _ _
+
+plt.subplot(1,2,1)
+plt.boxplot(df[df['platform'] == 'google']['Rating'])
+plt.title('Google Ratings')
+plt.ylabel('Rating')
+plt.subplot(1,2,2)
+plt.boxplot(df[df['platform'] == 'apple']['Rating'])
+plt.title('Apple Ratings')
+
+
+
 # %% markdown
 # Here we see the same information as in the analytical summary, but with a boxplot. Can you see how the boxplot is working here? If you need to revise your boxplots, check out this this [link](https://www.kaggle.com/ramamet4/app-store-apple-data-set-10k-apps).
 # %% markdown
@@ -310,15 +336,16 @@ _ _ _
 # %% codecell
 # Create a subset of the column 'Rating' by the different platforms.
 # Call the subsets 'apple' and 'google'
-_ _ _
+apple = df[df['platform'] == 'apple']['Rating']
+google = df[df['platform'] == 'google']['Rating']
 
 # %% codecell
 # Using the stats.normaltest() method, get an indication of whether the apple data are normally distributed
 # Save the result in a variable called apple_normal, and print it out
-_ _ _
+stats.normaltest(apple)
 # %% codecell
 # Do the same with the google data.
-_ _ _
+stats.normaltest(google)
 # %% markdown
 # Since the null hypothesis of the normaltest() is that the data are normally distributed, the lower the p-value in the result of this test, the more likely the data are to be non-normal.
 #
@@ -330,10 +357,16 @@ _ _ _
 # As well as a roughly identical mean, median and mode.
 # %% codecell
 # Create a histogram of the apple reviews distribution
-_ _ _
+plt.hist(apple)
+plt.title('Apple Reviews')
+plt.xlabel('Review Score')
+plt.ylabel('Review Count')
 # %% codecell
 # Create a histogram of the google data
-_ _ _
+plt.hist(google, color='green')
+plt.title('Google Reviews')
+plt.xlabel('Review Score')
+plt.ylabel('Review Count')
 # %% markdown
 # ### 3c. Permutation test
 # Since the data aren't normally distributed, we're using a *non-parametric* test here. This is simply a label for statistical tests used when the data aren't normally distributed. These tests are extraordinarily powerful due to how few assumptions we need to make.
@@ -342,13 +375,13 @@ _ _ _
 # %% codecell
 # Create a column called `Permutation1`, and assign to it the result of permuting (shuffling) the Rating column
 # This assignment will use our numpy object's random.permutation() method
-_ _ _
+df['Permutation1'] = np.random.permutation(df['Rating'])
 
 # Call the describe() method on our permutation grouped by 'platform'.
-_ _ _
+df.groupby('platform')['Permutation1'].describe()
 # %% codecell
 # Lets compare with the previous analytical summary:
-_ _ _
+df.groupby('platform')['Rating'].describe()
 # %% codecell
 # The difference in the means for Permutation1 (0.001103) now looks hugely different to our observed difference of 0.14206.
 # It's sure starting to look like our observed difference is significant, and that the Null is false; platform does impact on ratings
@@ -356,24 +389,29 @@ _ _ _
 # Let's create a vector with the differences - that will be the distibution of the Null.
 
 # First, make a list called difference.
-_ _ _
+difference = []
 
 # Now make a for loop that does the following 10,000 times:
 # 1. makes a permutation of the 'Rating' as you did above
 # 2. calculates the difference in the mean rating for apple and the mean rating for google.
-_ _ _
+for i in range(10000):
+    permutation = np.random.permutation(df['Rating'])
+    difference.append(
+    np.mean(df[df['platform'] == 'apple']['Rating']) -
+    np.mean(df[df['platform'] == 'google']['Rating']))
+
 # %% codecell
 # Make a variable called 'histo', and assign to it the result of plotting a histogram of the difference list.
-_ _ _
+histo = plt.pgit(difference)
 # %% codecell
 # Now make a variable called obs_difference, and assign it the result of the mean of our 'apple' variable and the mean of our 'google variable'
-_ _ _
-
+obs_difference = np.mean(apple) - np.mean(google)
 # Make this difference absolute with the built-in abs() function.
-_ _ _
+obs_difference = abs(obs_difference)
 
 # Print out this value; it should be 0.1420605474512291.
-_ _ _
+print(obs_difference)
+# " I suspect this is different becasue I updated the data before starting the project."
 # %% markdown
 # ## Stage 4 -  Evaluating and concluding
 # ### 4a. What is our conclusion?
@@ -387,7 +425,8 @@ As a result, we're going to count how many of the differences in our difference 
 
 If less than or equal to 5% of them are, then we will reject the Null.
 '''
-_ _ _
+p_value = np.sum(difference  >= np.mean(obs_difference) ) / len(difference)
+p_value
 # %% markdown
 # ### 4b. What is our decision?
 # So actually, zero differences are at least as extreme as our observed difference!
